@@ -277,11 +277,12 @@ export const HabitTracker = () => {
       </div>
 
       {selectedHabit && (
-        <HabitDetailView
-          habit={selectedHabit}
-          open={!!selectedHabit}
-          onOpenChange={(open) => !open && setSelectedHabit(null)}
-        />
+      <HabitDetailView
+        habit={selectedHabit}
+        open={!!selectedHabit}
+        onOpenChange={(open) => !open && setSelectedHabit(null)}
+        onToggleCompletion={toggleHabit}
+      />
       )}
     </div>
   );

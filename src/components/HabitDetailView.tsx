@@ -17,9 +17,10 @@ interface HabitDetailViewProps {
   habit: Habit;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onToggleCompletion: (habitId: string, date: string) => void;
 }
 
-export const HabitDetailView = ({ habit, open, onOpenChange }: HabitDetailViewProps) => {
+export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion }: HabitDetailViewProps) => {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
@@ -153,6 +154,10 @@ export const HabitDetailView = ({ habit, open, onOpenChange }: HabitDetailViewPr
                   modifiers={modifiers}
                   modifiersStyles={modifiersStyles}
                   className="pointer-events-auto"
+                  onDayClick={(date) => {
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    onToggleCompletion(habit.id, dateStr);
+                  }}
                 />
               </Card>
             </div>
