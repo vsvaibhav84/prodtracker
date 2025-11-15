@@ -110,12 +110,12 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto w-full">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">{habit.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-[60%_40%] gap-6 mt-4">
+        <div className="grid lg:grid-cols-2 gap-6 mt-4">
           {/* Left Panel - Calendar */}
           <div className="space-y-6">
             {/* Week View */}
