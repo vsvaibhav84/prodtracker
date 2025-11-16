@@ -197,18 +197,23 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
                   </Button>
                 </div>
                 
-                <Calendar
-                  mode="single"
-                  month={viewedMonth}
-                  onMonthChange={setViewedMonth}
-                  modifiers={modifiers}
-                  modifiersStyles={modifiersStyles}
-                  className="pointer-events-auto"
-                  onDayClick={(date) => {
-                    const dateStr = format(date, 'yyyy-MM-dd');
-                    onToggleCompletion(habit.id, dateStr);
-                  }}
-                />
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    month={viewedMonth}
+                    onMonthChange={setViewedMonth}
+                    modifiers={modifiers}
+                    modifiersStyles={modifiersStyles}
+                    className="pointer-events-auto"
+                    components={{
+                      Caption: () => null,
+                    }}
+                    onDayClick={(date) => {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      onToggleCompletion(habit.id, dateStr);
+                    }}
+                  />
+                </div>
               </Card>
             </div>
           </div>
