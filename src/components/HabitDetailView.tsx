@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Flame, Target, TrendingUp, CheckCircle2 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday } from "date-fns";
+import { Flame, Target, TrendingUp, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday, subMonths, addMonths } from "date-fns";
 
 interface Habit {
   id: string;
@@ -24,6 +26,20 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+  
+  const [viewedMonth, setViewedMonth] = useState(new Date());
+  
+  const goToPreviousMonth = () => {
+    setViewedMonth(prev => subMonths(prev, 1));
+  };
+
+  const goToNextMonth = () => {
+    setViewedMonth(prev => addMonths(prev, 1));
+  };
+
+  const goToToday = () => {
+    setViewedMonth(new Date());
+  };
   
   // Calculate monthly check-ins
   const getMonthlyCheckIns = () => {
@@ -144,13 +160,47 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
 
             {/* Month Calendar */}
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">
-                {format(today, 'MMMM yyyy')}
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Month Calendar</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="text-xs"
+                >
+                  Today
+                </Button>
+              </div>
+              
               <Card className="p-4">
+                <div className="flex items-center justify-center gap-4 mb-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToPreviousMonth}
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  <h4 className="text-lg font-semibold min-w-[200px] text-center">
+                    {format(viewedMonth, 'MMMM yyyy')}
+                  </h4>
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToNextMonth}
+                    aria-label="Next month"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
+                
                 <Calendar
                   mode="single"
-                  month={today}
+                  month={viewedMonth}
+                  onMonthChange={setViewedMonth}
                   modifiers={modifiers}
                   modifiersStyles={modifiersStyles}
                   className="pointer-events-auto"
