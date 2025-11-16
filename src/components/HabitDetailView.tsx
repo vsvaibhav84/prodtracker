@@ -9,8 +9,12 @@ import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday, subMonths, a
 interface Habit {
   id: string;
   name: string;
-  description?: string;
-  frequency: string;
+  goalType: string;
+  minutesPerDay: number;
+  daysPerWeek: number;
+  includeInTimeCalculations: boolean;
+  leavesAllowedPerMonth: number;
+  status: "active" | "inactive";
   completions: { [date: string]: boolean };
   createdAt: string;
 }
@@ -227,7 +231,7 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
               </div>
               <div>
                 <h3 className="font-semibold text-lg">{habit.name}</h3>
-                <p className="text-sm text-muted-foreground capitalize">{habit.frequency}</p>
+                <p className="text-sm text-muted-foreground">{habit.goalType} • {habit.minutesPerDay} mins/day • {habit.daysPerWeek} days/week</p>
               </div>
             </div>
 
