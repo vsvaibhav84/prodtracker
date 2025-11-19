@@ -12,9 +12,21 @@ import { HabitDetailView } from "./HabitDetailView";
 interface Habit {
   id: string;
   name: string;
-  goalType: string;
-  minutesPerDay: number;
-  daysPerWeek: number;
+  frequency: "daily" | "weekly" | "monthly" | "custom";
+  
+  // Only applicable when frequency is "custom"
+  customType?: "time-based" | "count-based";
+  
+  // For time-based custom (x minutes per day, y days per week)
+  minutesPerDay?: number;
+  
+  // For count-based custom (x count per day, y days per week)
+  countPerDay?: number;
+  
+  // For custom frequency types
+  daysPerWeek?: number;
+  
+  // Common fields
   includeInTimeCalculations: boolean;
   leavesAllowedPerMonth: number;
   status: "active" | "inactive";
@@ -27,8 +39,10 @@ export const HabitTracker = () => {
   const [showForm, setShowForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ 
     name: "", 
-    goalType: "x mins per day, y days a week",
+    frequency: "daily" as "daily" | "weekly" | "monthly" | "custom",
+    customType: "time-based" as "time-based" | "count-based",
     minutesPerDay: 30,
+    countPerDay: 1,
     daysPerWeek: 5,
     includeInTimeCalculations: true,
     leavesAllowedPerMonth: 0,
@@ -37,8 +51,10 @@ export const HabitTracker = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ 
     name: "", 
-    goalType: "x mins per day, y days a week",
+    frequency: "daily" as "daily" | "weekly" | "monthly" | "custom",
+    customType: "time-based" as "time-based" | "count-based",
     minutesPerDay: 30,
+    countPerDay: 1,
     daysPerWeek: 5,
     includeInTimeCalculations: true,
     leavesAllowedPerMonth: 0,
@@ -60,12 +76,10 @@ export const HabitTracker = () => {
   const addHabit = () => {
     if (!newHabit.name.trim()) return;
 
-    const habit: Habit = {
+    const baseHabit = {
       id: Date.now().toString(),
       name: newHabit.name,
-      goalType: newHabit.goalType,
-      minutesPerDay: newHabit.minutesPerDay,
-      daysPerWeek: newHabit.daysPerWeek,
+      frequency: newHabit.frequency,
       includeInTimeCalculations: newHabit.includeInTimeCalculations,
       leavesAllowedPerMonth: newHabit.leavesAllowedPerMonth,
       status: newHabit.status,
@@ -73,11 +87,25 @@ export const HabitTracker = () => {
       createdAt: new Date().toISOString(),
     };
 
+    const habit: Habit = newHabit.frequency === "custom"
+      ? {
+          ...baseHabit,
+          customType: newHabit.customType,
+          daysPerWeek: newHabit.daysPerWeek,
+          ...(newHabit.customType === "time-based" 
+            ? { minutesPerDay: newHabit.minutesPerDay }
+            : { countPerDay: newHabit.countPerDay }
+          ),
+        }
+      : baseHabit;
+
     setHabits([...habits, habit]);
     setNewHabit({ 
       name: "", 
-      goalType: "x mins per day, y days a week",
+      frequency: "daily",
+      customType: "time-based",
       minutesPerDay: 30,
+      countPerDay: 1,
       daysPerWeek: 5,
       includeInTimeCalculations: true,
       leavesAllowedPerMonth: 0,
@@ -91,9 +119,11 @@ export const HabitTracker = () => {
     setEditingId(habit.id);
     setEditForm({
       name: habit.name,
-      goalType: habit.goalType,
-      minutesPerDay: habit.minutesPerDay,
-      daysPerWeek: habit.daysPerWeek,
+      frequency: habit.frequency,
+      customType: habit.customType || "time-based",
+      minutesPerDay: habit.minutesPerDay || 30,
+      countPerDay: habit.countPerDay || 1,
+      daysPerWeek: habit.daysPerWeek || 5,
       includeInTimeCalculations: habit.includeInTimeCalculations,
       leavesAllowedPerMonth: habit.leavesAllowedPerMonth,
       status: habit.status,
@@ -103,19 +133,36 @@ export const HabitTracker = () => {
   const updateHabit = () => {
     if (!editForm.name.trim() || !editingId) return;
 
+    const baseUpdate = {
+      name: editForm.name,
+      frequency: editForm.frequency,
+      includeInTimeCalculations: editForm.includeInTimeCalculations,
+      leavesAllowedPerMonth: editForm.leavesAllowedPerMonth,
+      status: editForm.status,
+    };
+
+    const fullUpdate = editForm.frequency === "custom"
+      ? {
+          ...baseUpdate,
+          customType: editForm.customType,
+          daysPerWeek: editForm.daysPerWeek,
+          ...(editForm.customType === "time-based" 
+            ? { minutesPerDay: editForm.minutesPerDay, countPerDay: undefined }
+            : { countPerDay: editForm.countPerDay, minutesPerDay: undefined }
+          ),
+        }
+      : {
+          ...baseUpdate,
+          customType: undefined,
+          minutesPerDay: undefined,
+          countPerDay: undefined,
+          daysPerWeek: undefined,
+        };
+
     setHabits(
       habits.map((habit) =>
         habit.id === editingId
-          ? { 
-              ...habit, 
-              name: editForm.name, 
-              goalType: editForm.goalType,
-              minutesPerDay: editForm.minutesPerDay,
-              daysPerWeek: editForm.daysPerWeek,
-              includeInTimeCalculations: editForm.includeInTimeCalculations,
-              leavesAllowedPerMonth: editForm.leavesAllowedPerMonth,
-              status: editForm.status
-            }
+          ? { ...habit, ...fullUpdate }
           : habit
       )
     );
@@ -196,43 +243,74 @@ export const HabitTracker = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="goal-type">Goal Type</Label>
-            <Select value={newHabit.goalType} onValueChange={(value) => setNewHabit({ ...newHabit, goalType: value })}>
-              <SelectTrigger id="goal-type">
+            <Label htmlFor="frequency">Frequency</Label>
+            <Select value={newHabit.frequency} onValueChange={(value: "daily" | "weekly" | "monthly" | "custom") => setNewHabit({ ...newHabit, frequency: value })}>
+              <SelectTrigger id="frequency">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="x mins per day, y days a week">x mins per day, y days a week</SelectItem>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="minutes-per-day">Minutes per Day</Label>
-              <Input
-                id="minutes-per-day"
-                type="number"
-                min="0"
-                value={newHabit.minutesPerDay}
-                onChange={(e) => setNewHabit({ ...newHabit, minutesPerDay: parseInt(e.target.value) || 0 })}
-              />
-            </div>
+          {newHabit.frequency === "custom" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="custom-type">Goal Type</Label>
+                <Select value={newHabit.customType} onValueChange={(value: "time-based" | "count-based") => setNewHabit({ ...newHabit, customType: value })}>
+                  <SelectTrigger id="custom-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="time-based">x minutes per day, y days a week</SelectItem>
+                    <SelectItem value="count-based">x count per day, y days a week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="days-per-week">Days per Week</Label>
-              <Input
-                id="days-per-week"
-                type="number"
-                min="0"
-                max="7"
-                value={newHabit.daysPerWeek}
-                onChange={(e) => setNewHabit({ ...newHabit, daysPerWeek: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                {newHabit.customType === "time-based" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="minutes-per-day">Minutes per Day</Label>
+                    <Input
+                      id="minutes-per-day"
+                      type="number"
+                      min="1"
+                      value={newHabit.minutesPerDay}
+                      onChange={(e) => setNewHabit({ ...newHabit, minutesPerDay: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="count-per-day">Count per Day</Label>
+                    <Input
+                      id="count-per-day"
+                      type="number"
+                      min="1"
+                      value={newHabit.countPerDay}
+                      onChange={(e) => setNewHabit({ ...newHabit, countPerDay: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="days-per-week">Days per Week</Label>
+                  <Input
+                    id="days-per-week"
+                    type="number"
+                    min="1"
+                    max="7"
+                    value={newHabit.daysPerWeek}
+                    onChange={(e) => setNewHabit({ ...newHabit, daysPerWeek: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -298,43 +376,74 @@ export const HabitTracker = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-goal-type">Goal Type</Label>
-                  <Select value={editForm.goalType} onValueChange={(value) => setEditForm({ ...editForm, goalType: value })}>
-                    <SelectTrigger id="edit-goal-type">
+                  <Label htmlFor="edit-frequency">Frequency</Label>
+                  <Select value={editForm.frequency} onValueChange={(value: "daily" | "weekly" | "monthly" | "custom") => setEditForm({ ...editForm, frequency: value })}>
+                    <SelectTrigger id="edit-frequency">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="x mins per day, y days a week">x mins per day, y days a week</SelectItem>
                       <SelectItem value="daily">Daily</SelectItem>
                       <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-minutes-per-day">Minutes per Day</Label>
-                    <Input
-                      id="edit-minutes-per-day"
-                      type="number"
-                      min="0"
-                      value={editForm.minutesPerDay}
-                      onChange={(e) => setEditForm({ ...editForm, minutesPerDay: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
+                {editForm.frequency === "custom" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-custom-type">Goal Type</Label>
+                      <Select value={editForm.customType} onValueChange={(value: "time-based" | "count-based") => setEditForm({ ...editForm, customType: value })}>
+                        <SelectTrigger id="edit-custom-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="time-based">x minutes per day, y days a week</SelectItem>
+                          <SelectItem value="count-based">x count per day, y days a week</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-days-per-week">Days per Week</Label>
-                    <Input
-                      id="edit-days-per-week"
-                      type="number"
-                      min="0"
-                      max="7"
-                      value={editForm.daysPerWeek}
-                      onChange={(e) => setEditForm({ ...editForm, daysPerWeek: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {editForm.customType === "time-based" ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-minutes-per-day">Minutes per Day</Label>
+                          <Input
+                            id="edit-minutes-per-day"
+                            type="number"
+                            min="1"
+                            value={editForm.minutesPerDay}
+                            onChange={(e) => setEditForm({ ...editForm, minutesPerDay: parseInt(e.target.value) || 1 })}
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-count-per-day">Count per Day</Label>
+                          <Input
+                            id="edit-count-per-day"
+                            type="number"
+                            min="1"
+                            value={editForm.countPerDay}
+                            onChange={(e) => setEditForm({ ...editForm, countPerDay: parseInt(e.target.value) || 1 })}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-days-per-week">Days per Week</Label>
+                        <Input
+                          id="edit-days-per-week"
+                          type="number"
+                          min="1"
+                          max="7"
+                          value={editForm.daysPerWeek}
+                          onChange={(e) => setEditForm({ ...editForm, daysPerWeek: parseInt(e.target.value) || 1 })}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -393,14 +502,19 @@ export const HabitTracker = () => {
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-semibold text-foreground">{habit.name}</h3>
                       <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                        {habit.goalType}
+                        {habit.frequency === "custom" 
+                          ? (habit.customType === "time-based" 
+                              ? `${habit.minutesPerDay} mins/day, ${habit.daysPerWeek} days/week`
+                              : `${habit.countPerDay} count/day, ${habit.daysPerWeek} days/week`)
+                          : habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded-full ${habit.status === 'active' ? 'bg-green-500/10 text-green-600' : 'bg-gray-500/10 text-gray-600'}`}>
                         {habit.status}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {habit.minutesPerDay} mins/day • {habit.daysPerWeek} days/week • {habit.leavesAllowedPerMonth} leaves/month
+                      {habit.frequency === "custom" && `${habit.leavesAllowedPerMonth} leaves/month`}
+                      {habit.frequency !== "custom" && habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
                     </p>
                     <div className="flex items-center gap-6 pt-2">
                       <div className="flex items-center gap-2">

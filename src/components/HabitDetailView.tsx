@@ -9,9 +9,21 @@ import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday, subMonths, a
 interface Habit {
   id: string;
   name: string;
-  goalType: string;
-  minutesPerDay: number;
-  daysPerWeek: number;
+  frequency: "daily" | "weekly" | "monthly" | "custom";
+  
+  // Only applicable when frequency is "custom"
+  customType?: "time-based" | "count-based";
+  
+  // For time-based custom (x minutes per day, y days per week)
+  minutesPerDay?: number;
+  
+  // For count-based custom (x count per day, y days per week)
+  countPerDay?: number;
+  
+  // For custom frequency types
+  daysPerWeek?: number;
+  
+  // Common fields
   includeInTimeCalculations: boolean;
   leavesAllowedPerMonth: number;
   status: "active" | "inactive";
@@ -231,7 +243,13 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
               </div>
               <div>
                 <h3 className="font-semibold text-lg">{habit.name}</h3>
-                <p className="text-sm text-muted-foreground">{habit.goalType} • {habit.minutesPerDay} mins/day • {habit.daysPerWeek} days/week</p>
+                <p className="text-sm text-muted-foreground">
+                  {habit.frequency === "custom" 
+                    ? (habit.customType === "time-based" 
+                        ? `${habit.minutesPerDay} mins/day, ${habit.daysPerWeek} days/week`
+                        : `${habit.countPerDay} count/day, ${habit.daysPerWeek} days/week`)
+                    : habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                </p>
               </div>
             </div>
 
