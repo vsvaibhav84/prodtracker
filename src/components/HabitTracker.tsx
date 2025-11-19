@@ -27,7 +27,6 @@ interface Habit {
   daysPerWeek?: number;
   
   // Common fields
-  includeInTimeCalculations: boolean;
   leavesAllowedPerMonth: number;
   status: "active" | "inactive";
   completions: { [date: string]: boolean };
@@ -44,7 +43,6 @@ export const HabitTracker = () => {
     minutesPerDay: 30,
     countPerDay: 1,
     daysPerWeek: 5,
-    includeInTimeCalculations: true,
     leavesAllowedPerMonth: 0,
     status: "active" as "active" | "inactive"
   });
@@ -56,7 +54,6 @@ export const HabitTracker = () => {
     minutesPerDay: 30,
     countPerDay: 1,
     daysPerWeek: 5,
-    includeInTimeCalculations: true,
     leavesAllowedPerMonth: 0,
     status: "active" as "active" | "inactive"
   });
@@ -80,7 +77,6 @@ export const HabitTracker = () => {
       id: Date.now().toString(),
       name: newHabit.name,
       frequency: newHabit.frequency,
-      includeInTimeCalculations: newHabit.includeInTimeCalculations,
       leavesAllowedPerMonth: newHabit.leavesAllowedPerMonth,
       status: newHabit.status,
       completions: {},
@@ -107,7 +103,6 @@ export const HabitTracker = () => {
       minutesPerDay: 30,
       countPerDay: 1,
       daysPerWeek: 5,
-      includeInTimeCalculations: true,
       leavesAllowedPerMonth: 0,
       status: "active"
     });
@@ -124,7 +119,6 @@ export const HabitTracker = () => {
       minutesPerDay: habit.minutesPerDay || 30,
       countPerDay: habit.countPerDay || 1,
       daysPerWeek: habit.daysPerWeek || 5,
-      includeInTimeCalculations: habit.includeInTimeCalculations,
       leavesAllowedPerMonth: habit.leavesAllowedPerMonth,
       status: habit.status,
     });
@@ -136,7 +130,6 @@ export const HabitTracker = () => {
     const baseUpdate = {
       name: editForm.name,
       frequency: editForm.frequency,
-      includeInTimeCalculations: editForm.includeInTimeCalculations,
       leavesAllowedPerMonth: editForm.leavesAllowedPerMonth,
       status: editForm.status,
     };
@@ -312,17 +305,6 @@ export const HabitTracker = () => {
             </>
           )}
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="include-time"
-              checked={newHabit.includeInTimeCalculations}
-              onCheckedChange={(checked) => setNewHabit({ ...newHabit, includeInTimeCalculations: checked === true })}
-            />
-            <Label htmlFor="include-time" className="font-normal cursor-pointer">
-              Include in Time Calculations
-            </Label>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="leaves-allowed">Leaves Allowed per Month</Label>
             <Input
@@ -442,21 +424,10 @@ export const HabitTracker = () => {
                         />
                       </div>
                     </div>
-                  </>
-                )}
+                </>
+              )}
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="edit-include-time"
-                    checked={editForm.includeInTimeCalculations}
-                    onCheckedChange={(checked) => setEditForm({ ...editForm, includeInTimeCalculations: checked === true })}
-                  />
-                  <Label htmlFor="edit-include-time" className="font-normal cursor-pointer">
-                    Include in Time Calculations
-                  </Label>
-                </div>
-
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label htmlFor="edit-leaves-allowed">Leaves Allowed per Month</Label>
                   <Input
                     id="edit-leaves-allowed"
