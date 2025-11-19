@@ -24,7 +24,6 @@ interface Habit {
   daysPerWeek?: number;
   
   // Common fields
-  includeInTimeCalculations: boolean;
   leavesAllowedPerMonth: number;
   status: "active" | "inactive";
   completions: { [date: string]: boolean };
