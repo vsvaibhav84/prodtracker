@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Flame, Target, TrendingUp, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Flame, Target, TrendingUp, CheckCircle2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday, subMonths, addMonths } from "date-fns";
 
 interface Habit {
@@ -98,6 +98,23 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
     return streak;
   };
 
+  // Calculate leaves taken this month
+  const getLeavesThisMonth = () => {
+    const start = startOfMonth(today);
+    const end = endOfMonth(today);
+    let leavesCount = 0;
+    
+    for (let d = new Date(start); d <= end && d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = format(d, 'yyyy-MM-dd');
+      // Count days that were NOT completed
+      if (!habit.completions[dateStr]) {
+        leavesCount++;
+      }
+    }
+    
+    return leavesCount;
+  };
+
   // Get last 7 days for week view
   const getWeekView = () => {
     const week = [];
@@ -120,6 +137,7 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
   const totalCheckIns = getTotalCheckIns();
   const monthlyRate = getMonthlyRate();
   const currentStreak = getCurrentStreak();
+  const leavesThisMonth = getLeavesThisMonth();
   const daysInMonth = getDaysInMonth(today);
   const weekView = getWeekView();
 
@@ -291,6 +309,30 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
                 </div>
                 <span className="text-2xl font-bold">{currentStreak}</span>
               </div>
+            </Card>
+
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Leaves This Month</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold">{leavesThisMonth}</span>
+                  <span className="text-sm text-muted-foreground">/ {habit.leavesAllowedPerMonth}</span>
+                </div>
+              </div>
+              
+              {leavesThisMonth > habit.leavesAllowedPerMonth && (
+                <div className="text-xs text-destructive">
+                  Exceeded monthly leave allowance
+                </div>
+              )}
+              {leavesThisMonth === habit.leavesAllowedPerMonth && (
+                <div className="text-xs text-warning">
+                  All leaves used this month
+                </div>
+              )}
             </Card>
 
             {/* Progress Indicator */}
