@@ -378,7 +378,7 @@ export const HabitTracker = () => {
                       max="1440"
                       step="1"
                       value={newHabit.minutesPerDay}
-                      onChange={(e) => setNewHabit({ ...newHabit, minutesPerDay: parseInt(e.target.value) || 1 })}
+                      onChange={(e) => setNewHabit({ ...newHabit, minutesPerDay: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                       onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
                       className={validationErrors.minutesPerDay ? "border-destructive" : ""}
                     />
@@ -396,7 +396,7 @@ export const HabitTracker = () => {
                       max="100"
                       step="1"
                       value={newHabit.countPerDay}
-                      onChange={(e) => setNewHabit({ ...newHabit, countPerDay: parseInt(e.target.value) || 1 })}
+                      onChange={(e) => setNewHabit({ ...newHabit, countPerDay: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                       onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
                       className={validationErrors.countPerDay ? "border-destructive" : ""}
                     />
@@ -415,7 +415,7 @@ export const HabitTracker = () => {
                     max="7"
                     step="1"
                     value={newHabit.daysPerWeek}
-                    onChange={(e) => setNewHabit({ ...newHabit, daysPerWeek: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => setNewHabit({ ...newHabit, daysPerWeek: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
                     className={validationErrors.daysPerWeek ? "border-destructive" : ""}
                   />
@@ -436,7 +436,7 @@ export const HabitTracker = () => {
               max="31"
               step="1"
               value={newHabit.leavesAllowedPerMonth}
-              onChange={(e) => setNewHabit({ ...newHabit, leavesAllowedPerMonth: parseInt(e.target.value) || 0 })}
+              onChange={(e) => setNewHabit({ ...newHabit, leavesAllowedPerMonth: e.target.value === '' ? 0 : parseInt(e.target.value) })}
               onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
               className={validationErrors.leavesAllowedPerMonth ? "border-destructive" : ""}
             />
@@ -533,7 +533,7 @@ export const HabitTracker = () => {
                             max="1440"
                             step="1"
                             value={editForm.minutesPerDay}
-                            onChange={(e) => setEditForm({ ...editForm, minutesPerDay: parseInt(e.target.value) || 1 })}
+                            onChange={(e) => setEditForm({ ...editForm, minutesPerDay: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                             onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
                             className={editValidationErrors.minutesPerDay ? "border-destructive" : ""}
                           />
@@ -551,7 +551,7 @@ export const HabitTracker = () => {
                             max="100"
                             step="1"
                             value={editForm.countPerDay}
-                            onChange={(e) => setEditForm({ ...editForm, countPerDay: parseInt(e.target.value) || 1 })}
+                            onChange={(e) => setEditForm({ ...editForm, countPerDay: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                             onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
                             className={editValidationErrors.countPerDay ? "border-destructive" : ""}
                           />
@@ -570,7 +570,7 @@ export const HabitTracker = () => {
                           max="7"
                           step="1"
                           value={editForm.daysPerWeek}
-                          onChange={(e) => setEditForm({ ...editForm, daysPerWeek: parseInt(e.target.value) || 1 })}
+                          onChange={(e) => setEditForm({ ...editForm, daysPerWeek: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                           onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
                           className={editValidationErrors.daysPerWeek ? "border-destructive" : ""}
                         />
@@ -591,7 +591,7 @@ export const HabitTracker = () => {
                     max="31"
                     step="1"
                     value={editForm.leavesAllowedPerMonth}
-                    onChange={(e) => setEditForm({ ...editForm, leavesAllowedPerMonth: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setEditForm({ ...editForm, leavesAllowedPerMonth: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
                     className={editValidationErrors.leavesAllowedPerMonth ? "border-destructive" : ""}
                   />
