@@ -9,6 +9,7 @@ import { format, startOfMonth, endOfMonth, getDaysInMonth, isToday, subMonths, a
 interface Habit {
   id: string;
   name: string;
+  category?: string;
   frequency: "daily" | "weekly" | "monthly" | "custom";
   
   // Only applicable when frequency is "custom"
