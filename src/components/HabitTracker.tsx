@@ -10,12 +10,113 @@ import { toast } from "sonner";
 import { HabitDetailView } from "./HabitDetailView";
 import { z } from "zod";
 
+// Category types and configuration
+type HabitCategory = 
+  | "health-fitness"
+  | "learning"
+  | "productivity"
+  | "wellness"
+  | "social"
+  | "finance"
+  | "hobbies"
+  | "home"
+  | "other";
+
+interface CategoryConfig {
+  id: HabitCategory;
+  label: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+}
+
+const HABIT_CATEGORIES: CategoryConfig[] = [
+  { 
+    id: "health-fitness", 
+    label: "Health & Fitness", 
+    icon: "💪",
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-950/30"
+  },
+  { 
+    id: "learning", 
+    label: "Learning", 
+    icon: "📚",
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950/30"
+  },
+  { 
+    id: "productivity", 
+    label: "Productivity", 
+    icon: "💼",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-950/30"
+  },
+  { 
+    id: "wellness", 
+    label: "Wellness", 
+    icon: "🧘",
+    color: "text-pink-600 dark:text-pink-400",
+    bgColor: "bg-pink-50 dark:bg-pink-950/30"
+  },
+  { 
+    id: "social", 
+    label: "Social", 
+    icon: "👥",
+    color: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-50 dark:bg-orange-950/30"
+  },
+  { 
+    id: "finance", 
+    label: "Finance", 
+    icon: "💰",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/30"
+  },
+  { 
+    id: "hobbies", 
+    label: "Hobbies", 
+    icon: "🎨",
+    color: "text-rose-600 dark:text-rose-400",
+    bgColor: "bg-rose-50 dark:bg-rose-950/30"
+  },
+  { 
+    id: "home", 
+    label: "Home", 
+    icon: "🏠",
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-50 dark:bg-amber-950/30"
+  },
+  { 
+    id: "other", 
+    label: "Other", 
+    icon: "📌",
+    color: "text-gray-600 dark:text-gray-400",
+    bgColor: "bg-gray-50 dark:bg-gray-950/30"
+  },
+];
+
+const getCategoryConfig = (categoryId: HabitCategory): CategoryConfig => {
+  return HABIT_CATEGORIES.find(cat => cat.id === categoryId) || HABIT_CATEGORIES[HABIT_CATEGORIES.length - 1];
+};
+
 // Zod validation schemas
 const habitBaseSchema = z.object({
   name: z.string()
     .trim()
     .min(1, "Habit name is required")
     .max(50, "Habit name must be less than 50 characters"),
+  category: z.enum([
+    "health-fitness",
+    "learning", 
+    "productivity",
+    "wellness",
+    "social",
+    "finance",
+    "hobbies",
+    "home",
+    "other"
+  ]),
   frequency: z.enum(["daily", "weekly", "monthly", "custom"]),
   leavesAllowedPerMonth: z.number()
     .int("Must be a whole number")
@@ -75,6 +176,7 @@ const habitSchema = habitBaseSchema.extend({
 interface Habit {
   id: string;
   name: string;
+  category: HabitCategory;
   frequency: "daily" | "weekly" | "monthly" | "custom";
   
   // Only applicable when frequency is "custom"
@@ -105,6 +207,7 @@ export const HabitTracker = () => {
   const [showForm, setShowForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ 
     name: "", 
+    category: "other" as HabitCategory,
     frequency: "daily" as "daily" | "weekly" | "monthly" | "custom",
     customType: "time-based" as "time-based" | "count-based",
     minutesPerDay: 30,
@@ -116,6 +219,7 @@ export const HabitTracker = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ 
     name: "", 
+    category: "other" as HabitCategory,
     frequency: "daily" as "daily" | "weekly" | "monthly" | "custom",
     customType: "time-based" as "time-based" | "count-based",
     minutesPerDay: 30,
@@ -125,13 +229,20 @@ export const HabitTracker = () => {
     status: "active" as "active" | "inactive"
   });
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<HabitCategory | "all">("all");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [editValidationErrors, setEditValidationErrors] = useState<ValidationErrors>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("habits");
     if (saved) {
-      setHabits(JSON.parse(saved));
+      const storedHabits = JSON.parse(saved);
+      // Migration: add category to existing habits
+      const migratedHabits = storedHabits.map((habit: Habit) => ({
+        ...habit,
+        category: habit.category || "other"
+      }));
+      setHabits(migratedHabits);
     }
   }, []);
 
@@ -166,6 +277,7 @@ export const HabitTracker = () => {
     const baseHabit = {
       id: Date.now().toString(),
       name: newHabit.name,
+      category: newHabit.category,
       frequency: newHabit.frequency,
       leavesAllowedPerMonth: newHabit.leavesAllowedPerMonth,
       status: newHabit.status,
@@ -188,6 +300,7 @@ export const HabitTracker = () => {
     setHabits([...habits, habit]);
     setNewHabit({ 
       name: "", 
+      category: "other",
       frequency: "daily",
       customType: "time-based",
       minutesPerDay: 30,
@@ -205,6 +318,7 @@ export const HabitTracker = () => {
     setEditingId(habit.id);
     setEditForm({
       name: habit.name,
+      category: habit.category,
       frequency: habit.frequency,
       customType: habit.customType || "time-based",
       minutesPerDay: habit.minutesPerDay || 30,
@@ -225,6 +339,7 @@ export const HabitTracker = () => {
 
     const baseUpdate = {
       name: editForm.name,
+      category: editForm.category,
       frequency: editForm.frequency,
       leavesAllowedPerMonth: editForm.leavesAllowedPerMonth,
       status: editForm.status,
@@ -307,6 +422,11 @@ export const HabitTracker = () => {
     return habit.completions[today] || false;
   };
 
+  // Filter habits by category
+  const filteredHabits = selectedCategoryFilter === "all" 
+    ? habits 
+    : habits.filter(h => h.category === selectedCategoryFilter);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -316,6 +436,34 @@ export const HabitTracker = () => {
           Add Habit
         </Button>
       </div>
+
+      {/* Category Filter */}
+      {habits.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={selectedCategoryFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedCategoryFilter("all")}
+          >
+            All ({habits.length})
+          </Button>
+          {HABIT_CATEGORIES.map((cat) => {
+            const count = habits.filter(h => h.category === cat.id).length;
+            if (count === 0) return null;
+            return (
+              <Button
+                key={cat.id}
+                variant={selectedCategoryFilter === cat.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategoryFilter(cat.id)}
+              >
+                <span className="mr-1">{cat.icon}</span>
+                {cat.label} ({count})
+              </Button>
+            );
+          })}
+        </div>
+      )}
 
       {showForm && (
         <Card className="p-6 space-y-4 animate-in fade-in duration-200">
@@ -334,6 +482,31 @@ export const HabitTracker = () => {
             />
             {validationErrors.name && (
               <p className="text-sm text-destructive">{validationErrors.name}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select 
+              value={newHabit.category} 
+              onValueChange={(value: HabitCategory) => setNewHabit({ ...newHabit, category: value })}
+            >
+              <SelectTrigger id="category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HABIT_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {validationErrors.category && (
+              <p className="text-sm text-destructive">{validationErrors.category}</p>
             )}
           </div>
 
@@ -470,7 +643,16 @@ export const HabitTracker = () => {
       )}
 
       <div className="grid gap-4">
-        {habits.map((habit) => (
+        {filteredHabits.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">
+              {selectedCategoryFilter === "all" 
+                ? "No habits yet. Create one to get started!"
+                : `No habits in ${getCategoryConfig(selectedCategoryFilter).label} category.`}
+            </p>
+          </Card>
+        ) : (
+          filteredHabits.map((habit) => (
           <div key={habit.id}>
             {editingId === habit.id ? (
               <Card className="p-6 space-y-4 animate-in fade-in duration-200">
@@ -489,6 +671,31 @@ export const HabitTracker = () => {
                   />
                   {editValidationErrors.name && (
                     <p className="text-sm text-destructive">{editValidationErrors.name}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select 
+                    value={editForm.category} 
+                    onValueChange={(value: HabitCategory) => setEditForm({ ...editForm, category: value })}
+                  >
+                    <SelectTrigger id="edit-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HABIT_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{cat.icon}</span>
+                            <span>{cat.label}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {editValidationErrors.category && (
+                    <p className="text-sm text-destructive">{editValidationErrors.category}</p>
                   )}
                 </div>
 
@@ -632,6 +839,14 @@ export const HabitTracker = () => {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
+                    {/* Category badge */}
+                    <div className="mb-2">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryConfig(habit.category).bgColor} ${getCategoryConfig(habit.category).color}`}>
+                        <span>{getCategoryConfig(habit.category).icon}</span>
+                        <span>{getCategoryConfig(habit.category).label}</span>
+                      </span>
+                    </div>
+                    
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-semibold text-foreground">{habit.name}</h3>
                       <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
@@ -646,8 +861,7 @@ export const HabitTracker = () => {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {habit.frequency === "custom" && `${habit.leavesAllowedPerMonth} leaves/month`}
-                      {habit.frequency !== "custom" && habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                      Leaves allowed: {habit.leavesAllowedPerMonth}/month
                     </p>
                     <div className="flex items-center gap-6 pt-2">
                       <div className="flex items-center gap-2">
@@ -690,20 +904,7 @@ export const HabitTracker = () => {
               </Card>
             )}
           </div>
-        ))}
-        
-        {habits.length === 0 && !showForm && (
-          <Card className="p-12 text-center">
-            <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No habits yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Start building better habits today
-            </p>
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Your First Habit
-            </Button>
-          </Card>
+        ))
         )}
       </div>
 
