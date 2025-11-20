@@ -8,6 +8,69 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Check, Flame, TrendingUp, Target, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HabitDetailView } from "./HabitDetailView";
+import { z } from "zod";
+
+// Zod validation schemas
+const habitBaseSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(1, "Habit name is required")
+    .max(50, "Habit name must be less than 50 characters"),
+  frequency: z.enum(["daily", "weekly", "monthly", "custom"]),
+  leavesAllowedPerMonth: z.number()
+    .int("Must be a whole number")
+    .min(0, "Cannot be negative")
+    .max(31, "Cannot exceed 31 days"),
+  status: z.enum(["active", "inactive"]),
+});
+
+const customFrequencySchema = z.object({
+  customType: z.enum(["time-based", "count-based"]),
+  daysPerWeek: z.number()
+    .int("Must be a whole number")
+    .min(1, "Must be at least 1 day")
+    .max(7, "Cannot exceed 7 days"),
+  minutesPerDay: z.number()
+    .int("Must be a whole number")
+    .min(1, "Must be at least 1 minute")
+    .max(1440, "Cannot exceed 1440 minutes (24 hours)")
+    .optional(),
+  countPerDay: z.number()
+    .int("Must be a whole number")
+    .min(1, "Must be at least 1")
+    .max(100, "Cannot exceed 100")
+    .optional(),
+}).refine(
+  (data) => {
+    if (data.customType === "time-based") {
+      return data.minutesPerDay !== undefined && data.minutesPerDay > 0;
+    }
+    if (data.customType === "count-based") {
+      return data.countPerDay !== undefined && data.countPerDay > 0;
+    }
+    return true;
+  },
+  {
+    message: "Required field for selected custom type",
+    path: ["customType"],
+  }
+);
+
+const habitSchema = habitBaseSchema.extend({
+  customType: z.enum(["time-based", "count-based"]).optional(),
+  minutesPerDay: z.number().optional(),
+  countPerDay: z.number().optional(),
+  daysPerWeek: z.number().optional(),
+}).superRefine((data, ctx) => {
+  if (data.frequency === "custom") {
+    const result = customFrequencySchema.safeParse(data);
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue(issue);
+      });
+    }
+  }
+});
 
 interface Habit {
   id: string;
@@ -32,6 +95,10 @@ interface Habit {
   completions: { [date: string]: boolean };
   createdAt: string;
 }
+
+type ValidationErrors = {
+  [key: string]: string;
+};
 
 export const HabitTracker = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -58,6 +125,8 @@ export const HabitTracker = () => {
     status: "active" as "active" | "inactive"
   });
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [editValidationErrors, setEditValidationErrors] = useState<ValidationErrors>({});
 
   useEffect(() => {
     const saved = localStorage.getItem("habits");
@@ -70,8 +139,29 @@ export const HabitTracker = () => {
     localStorage.setItem("habits", JSON.stringify(habits));
   }, [habits]);
 
+  const validateHabitForm = (formData: typeof newHabit, setErrors: (errors: ValidationErrors) => void): boolean => {
+    try {
+      habitSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: ValidationErrors = {};
+        error.errors.forEach((err) => {
+          const path = err.path.join(".");
+          errors[path] = err.message;
+        });
+        setErrors(errors);
+      }
+      return false;
+    }
+  };
+
   const addHabit = () => {
-    if (!newHabit.name.trim()) return;
+    if (!validateHabitForm(newHabit, setValidationErrors)) {
+      toast.error("Please fix the validation errors before submitting");
+      return;
+    }
 
     const baseHabit = {
       id: Date.now().toString(),
@@ -106,6 +196,7 @@ export const HabitTracker = () => {
       leavesAllowedPerMonth: 0,
       status: "active"
     });
+    setValidationErrors({});
     setShowForm(false);
     toast.success("Habit added successfully!");
   };
@@ -125,7 +216,12 @@ export const HabitTracker = () => {
   };
 
   const updateHabit = () => {
-    if (!editForm.name.trim() || !editingId) return;
+    if (!editingId) return;
+    
+    if (!validateHabitForm(editForm, setEditValidationErrors)) {
+      toast.error("Please fix the validation errors before submitting");
+      return;
+    }
 
     const baseUpdate = {
       name: editForm.name,
@@ -232,7 +328,13 @@ export const HabitTracker = () => {
               placeholder="Enter habit name"
               value={newHabit.name}
               onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
+              onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
+              className={validationErrors.name ? "border-destructive" : ""}
+              maxLength={50}
             />
+            {validationErrors.name && (
+              <p className="text-sm text-destructive">{validationErrors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -273,9 +375,16 @@ export const HabitTracker = () => {
                       id="minutes-per-day"
                       type="number"
                       min="1"
+                      max="1440"
+                      step="1"
                       value={newHabit.minutesPerDay}
                       onChange={(e) => setNewHabit({ ...newHabit, minutesPerDay: parseInt(e.target.value) || 1 })}
+                      onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
+                      className={validationErrors.minutesPerDay ? "border-destructive" : ""}
                     />
+                    {validationErrors.minutesPerDay && (
+                      <p className="text-sm text-destructive">{validationErrors.minutesPerDay}</p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -284,9 +393,16 @@ export const HabitTracker = () => {
                       id="count-per-day"
                       type="number"
                       min="1"
+                      max="100"
+                      step="1"
                       value={newHabit.countPerDay}
                       onChange={(e) => setNewHabit({ ...newHabit, countPerDay: parseInt(e.target.value) || 1 })}
+                      onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
+                      className={validationErrors.countPerDay ? "border-destructive" : ""}
                     />
+                    {validationErrors.countPerDay && (
+                      <p className="text-sm text-destructive">{validationErrors.countPerDay}</p>
+                    )}
                   </div>
                 )}
                 
@@ -297,9 +413,15 @@ export const HabitTracker = () => {
                     type="number"
                     min="1"
                     max="7"
+                    step="1"
                     value={newHabit.daysPerWeek}
                     onChange={(e) => setNewHabit({ ...newHabit, daysPerWeek: parseInt(e.target.value) || 1 })}
+                    onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
+                    className={validationErrors.daysPerWeek ? "border-destructive" : ""}
                   />
+                  {validationErrors.daysPerWeek && (
+                    <p className="text-sm text-destructive">{validationErrors.daysPerWeek}</p>
+                  )}
                 </div>
               </div>
             </>
@@ -311,9 +433,16 @@ export const HabitTracker = () => {
               id="leaves-allowed"
               type="number"
               min="0"
+              max="31"
+              step="1"
               value={newHabit.leavesAllowedPerMonth}
               onChange={(e) => setNewHabit({ ...newHabit, leavesAllowedPerMonth: parseInt(e.target.value) || 0 })}
+              onBlur={() => validateHabitForm(newHabit, setValidationErrors)}
+              className={validationErrors.leavesAllowedPerMonth ? "border-destructive" : ""}
             />
+            {validationErrors.leavesAllowedPerMonth && (
+              <p className="text-sm text-destructive">{validationErrors.leavesAllowedPerMonth}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -354,7 +483,13 @@ export const HabitTracker = () => {
                     placeholder="Enter habit name"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
+                    className={editValidationErrors.name ? "border-destructive" : ""}
+                    maxLength={50}
                   />
+                  {editValidationErrors.name && (
+                    <p className="text-sm text-destructive">{editValidationErrors.name}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -395,9 +530,16 @@ export const HabitTracker = () => {
                             id="edit-minutes-per-day"
                             type="number"
                             min="1"
+                            max="1440"
+                            step="1"
                             value={editForm.minutesPerDay}
                             onChange={(e) => setEditForm({ ...editForm, minutesPerDay: parseInt(e.target.value) || 1 })}
+                            onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
+                            className={editValidationErrors.minutesPerDay ? "border-destructive" : ""}
                           />
+                          {editValidationErrors.minutesPerDay && (
+                            <p className="text-sm text-destructive">{editValidationErrors.minutesPerDay}</p>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -406,9 +548,16 @@ export const HabitTracker = () => {
                             id="edit-count-per-day"
                             type="number"
                             min="1"
+                            max="100"
+                            step="1"
                             value={editForm.countPerDay}
                             onChange={(e) => setEditForm({ ...editForm, countPerDay: parseInt(e.target.value) || 1 })}
+                            onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
+                            className={editValidationErrors.countPerDay ? "border-destructive" : ""}
                           />
+                          {editValidationErrors.countPerDay && (
+                            <p className="text-sm text-destructive">{editValidationErrors.countPerDay}</p>
+                          )}
                         </div>
                       )}
                       
@@ -419,9 +568,15 @@ export const HabitTracker = () => {
                           type="number"
                           min="1"
                           max="7"
+                          step="1"
                           value={editForm.daysPerWeek}
                           onChange={(e) => setEditForm({ ...editForm, daysPerWeek: parseInt(e.target.value) || 1 })}
+                          onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
+                          className={editValidationErrors.daysPerWeek ? "border-destructive" : ""}
                         />
+                        {editValidationErrors.daysPerWeek && (
+                          <p className="text-sm text-destructive">{editValidationErrors.daysPerWeek}</p>
+                        )}
                       </div>
                     </div>
                 </>
@@ -433,9 +588,16 @@ export const HabitTracker = () => {
                     id="edit-leaves-allowed"
                     type="number"
                     min="0"
+                    max="31"
+                    step="1"
                     value={editForm.leavesAllowedPerMonth}
                     onChange={(e) => setEditForm({ ...editForm, leavesAllowedPerMonth: parseInt(e.target.value) || 0 })}
+                    onBlur={() => validateHabitForm(editForm, setEditValidationErrors)}
+                    className={editValidationErrors.leavesAllowedPerMonth ? "border-destructive" : ""}
                   />
+                  {editValidationErrors.leavesAllowedPerMonth && (
+                    <p className="text-sm text-destructive">{editValidationErrors.leavesAllowedPerMonth}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
