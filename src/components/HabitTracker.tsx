@@ -959,7 +959,7 @@ export const HabitTracker = () => {
                       
                       <div className="flex items-center gap-3">
                         <h3 className="text-lg font-semibold text-foreground">{habit.name}</h3>
-                        <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                        <span className="text-xs px-2.5 py-1 bg-primary text-primary-foreground rounded-full font-medium">
                           {habit.frequency === "custom" 
                             ? (habit.customType === "time-based" 
                                 ? `${habit.minutesPerDay} mins/day, ${habit.daysPerWeek} days/week`
