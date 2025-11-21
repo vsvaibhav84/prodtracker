@@ -380,13 +380,21 @@ export const HabitTracker = () => {
     toast.success("Habit deleted successfully!");
   };
 
-  const toggleHabit = (id: string) => {
+  const toggleHabit = (id: string, date?: string) => {
+    const targetDate = date || new Date().toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
+    
+    // Prevent logging for future dates
+    if (targetDate > today) {
+      toast.error("Cannot log habits for future dates");
+      return;
+    }
+    
     setHabits(
       habits.map((habit) => {
         if (habit.id === id) {
           const newCompletions = { ...habit.completions };
-          newCompletions[today] = !newCompletions[today];
+          newCompletions[targetDate] = !newCompletions[targetDate];
           return { ...habit, completions: newCompletions };
         }
         return habit;
