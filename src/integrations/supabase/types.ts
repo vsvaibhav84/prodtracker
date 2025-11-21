@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      habits: {
+        Row: {
+          archived: boolean
+          color: string
+          completion_dates: Json
+          created_at: string
+          custom_type: string | null
+          days_per_week: number | null
+          display_order: number
+          frequency: string
+          id: string
+          minutes_per_day: number | null
+          name: string
+          times_per_day: number | null
+          times_per_week: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          color: string
+          completion_dates?: Json
+          created_at?: string
+          custom_type?: string | null
+          days_per_week?: number | null
+          display_order?: number
+          frequency: string
+          id?: string
+          minutes_per_day?: number | null
+          name: string
+          times_per_day?: number | null
+          times_per_week?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          color?: string
+          completion_dates?: Json
+          created_at?: string
+          custom_type?: string | null
+          days_per_week?: number | null
+          display_order?: number
+          frequency?: string
+          id?: string
+          minutes_per_day?: number | null
+          name?: string
+          times_per_day?: number | null
+          times_per_week?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -36,6 +90,42 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }
