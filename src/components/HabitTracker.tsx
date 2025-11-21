@@ -250,6 +250,17 @@ export const HabitTracker = () => {
     localStorage.setItem("habits", JSON.stringify(habits));
   }, [habits]);
 
+  // Keep selectedHabit in sync with the habits array for immediate visual feedback
+  useEffect(() => {
+    if (selectedHabit) {
+      const updatedHabit = habits.find(h => h.id === selectedHabit.id);
+      if (updatedHabit) {
+        setSelectedHabit(updatedHabit);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habits]); // Only depend on habits, not selectedHabit to avoid infinite loop
+
   const validateHabitForm = (formData: typeof newHabit, setErrors: (errors: ValidationErrors) => void): boolean => {
     try {
       habitSchema.parse(formData);
