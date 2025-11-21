@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Check, Flame, TrendingUp, Target, Pencil, Trash2 } from "lucide-react";
+import { Plus, Check, Flame, TrendingUp, Target, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { HabitDetailView } from "./HabitDetailView";
 import { z } from "zod";
@@ -232,6 +232,8 @@ export const HabitTracker = () => {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<HabitCategory | "all">("all");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [editValidationErrors, setEditValidationErrors] = useState<ValidationErrors>({});
+  const [draggedHabit, setDraggedHabit] = useState<string | null>(null);
+  const [dragOverHabit, setDragOverHabit] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("habits");
@@ -445,6 +447,76 @@ export const HabitTracker = () => {
   const filteredHabits = selectedCategoryFilter === "all" 
     ? habits 
     : habits.filter(h => h.category === selectedCategoryFilter);
+
+  // Drag handlers for reordering
+  const handleDragStart = (e: React.DragEvent, habitId: string) => {
+    setDraggedHabit(habitId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, habitId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverHabit(habitId);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetHabitId: string) => {
+    e.preventDefault();
+    
+    if (!draggedHabit || draggedHabit === targetHabitId) {
+      setDraggedHabit(null);
+      setDragOverHabit(null);
+      return;
+    }
+
+    // Find indices in the FILTERED habits array
+    const draggedIndex = filteredHabits.findIndex(h => h.id === draggedHabit);
+    const targetIndex = filteredHabits.findIndex(h => h.id === targetHabitId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create a new array with reordered habits
+    const reorderedFiltered = [...filteredHabits];
+    const [draggedItem] = reorderedFiltered.splice(draggedIndex, 1);
+    reorderedFiltered.splice(targetIndex, 0, draggedItem);
+
+    // Now we need to merge this back into the full habits array
+    // maintaining the order of filtered habits and position of non-filtered habits
+    const newHabits = [...habits];
+    
+    // If filtering by category, only reorder within that category
+    if (selectedCategoryFilter !== "all") {
+      // Remove all habits of the filtered category
+      const otherHabits = newHabits.filter(h => h.category !== selectedCategoryFilter);
+      
+      // Find the position of the first habit of this category in the original array
+      const firstCategoryIndex = newHabits.findIndex(h => h.category === selectedCategoryFilter);
+      
+      // Insert reordered category habits at the original position
+      if (firstCategoryIndex !== -1) {
+        const before = otherHabits.slice(0, otherHabits.findIndex((_, i, arr) => {
+          // Find where to insert based on original positions
+          return newHabits.indexOf(arr[i]) > firstCategoryIndex;
+        }));
+        const after = otherHabits.slice(before.length);
+        setHabits([...before, ...reorderedFiltered, ...after]);
+      } else {
+        setHabits([...otherHabits, ...reorderedFiltered]);
+      }
+    } else {
+      // If "all" filter is active, simply use the reordered array
+      setHabits(reorderedFiltered);
+    }
+
+    setDraggedHabit(null);
+    setDragOverHabit(null);
+    toast.success("Habit order updated!");
+  };
+
+  const handleDragEnd = () => {
+    setDraggedHabit(null);
+    setDragOverHabit(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -853,71 +925,100 @@ export const HabitTracker = () => {
               </Card>
             ) : (
               <Card
-                className="p-6 hover:shadow-md transition-all cursor-pointer"
+                className={`p-6 hover:shadow-md transition-all cursor-pointer ${
+                  draggedHabit === habit.id ? 'opacity-50' : ''
+                } ${
+                  dragOverHabit === habit.id ? 'border-2 border-primary border-dashed' : ''
+                }`}
                 onClick={() => setSelectedHabit(habit)}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    {/* Category badge */}
-                    <div className="mb-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryConfig(habit.category).bgColor} ${getCategoryConfig(habit.category).color}`}>
-                        <span>{getCategoryConfig(habit.category).icon}</span>
-                        <span>{getCategoryConfig(habit.category).label}</span>
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-foreground">{habit.name}</h3>
-                      <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                        {habit.frequency === "custom" 
-                          ? (habit.customType === "time-based" 
-                              ? `${habit.minutesPerDay} mins/day, ${habit.daysPerWeek} days/week`
-                              : `${habit.countPerDay} count/day, ${habit.daysPerWeek} days/week`)
-                          : habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${habit.status === 'active' ? 'bg-green-500/10 text-green-600' : 'bg-gray-500/10 text-gray-600'}`}>
-                        {habit.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Leaves allowed: {habit.leavesAllowedPerMonth}/month
-                    </p>
-                    <div className="flex items-center gap-6 pt-2">
-                      <div className="flex items-center gap-2">
-                        <Flame className="h-4 w-4 text-warning" />
-                        <span className="text-sm font-medium">{getStreak(habit)} day streak</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-primary" />
-                        <span className="text-sm text-muted-foreground">
-                          {getTotalCompletions(habit)} total
+                <div className="flex items-start gap-3">
+                  {/* Drag Handle */}
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      handleDragStart(e, habit.id);
+                    }}
+                    onDragOver={(e) => {
+                      e.stopPropagation();
+                      handleDragOver(e, habit.id);
+                    }}
+                    onDrop={(e) => {
+                      e.stopPropagation();
+                      handleDrop(e, habit.id);
+                    }}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab active:cursor-grabbing pt-1 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <GripVertical className="h-5 w-5" />
+                  </div>
+
+                  {/* Rest of the habit content */}
+                  <div className="flex-1 flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      {/* Category badge */}
+                      <div className="mb-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryConfig(habit.category).bgColor} ${getCategoryConfig(habit.category).color}`}>
+                          <span>{getCategoryConfig(habit.category).icon}</span>
+                          <span>{getCategoryConfig(habit.category).label}</span>
                         </span>
                       </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-foreground">{habit.name}</h3>
+                        <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                          {habit.frequency === "custom" 
+                            ? (habit.customType === "time-based" 
+                                ? `${habit.minutesPerDay} mins/day, ${habit.daysPerWeek} days/week`
+                                : `${habit.countPerDay} count/day, ${habit.daysPerWeek} days/week`)
+                            : habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${habit.status === 'active' ? 'bg-green-500/10 text-green-600' : 'bg-gray-500/10 text-gray-600'}`}>
+                          {habit.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Leaves allowed: {habit.leavesAllowedPerMonth}/month
+                      </p>
+                      <div className="flex items-center gap-6 pt-2">
+                        <div className="flex items-center gap-2">
+                          <Flame className="h-4 w-4 text-warning" />
+                          <span className="text-sm font-medium">{getStreak(habit)} day streak</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Target className="h-4 w-4 text-primary" />
+                          <span className="text-sm text-muted-foreground">
+                            {getTotalCompletions(habit)} total
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEditing(habit);
-                      }}
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleHabit(habit.id);
-                      }}
-                      variant={isCompletedToday(habit) ? "default" : "outline"}
-                      size="lg"
-                      className="rounded-full w-12 h-12"
-                    >
-                      <Check className="h-5 w-5" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(habit);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleHabit(habit.id);
+                        }}
+                        variant={isCompletedToday(habit) ? "default" : "outline"}
+                        size="lg"
+                        className="rounded-full w-12 h-12"
+                      >
+                        <Check className="h-5 w-5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
