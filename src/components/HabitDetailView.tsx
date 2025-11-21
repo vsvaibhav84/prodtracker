@@ -178,15 +178,16 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
                     className="flex flex-col items-center gap-1"
                   >
                     <span className="text-xs text-muted-foreground">{day.label}</span>
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                    <button
+                      onClick={() => onToggleCompletion(habit.id, day.dateStr)}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors cursor-pointer hover:opacity-80 ${
                         day.completed
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground'
                       } ${isToday(day.date) ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                     >
                       {day.day}
-                    </div>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -233,12 +234,13 @@ export const HabitDetailView = ({ habit, open, onOpenChange, onToggleCompletion 
                 
                 <div className="flex justify-center">
                   <Calendar
-                    mode="single"
+                    mode="multiple"
+                    selected={modifiers.completed}
                     month={viewedMonth}
                     onMonthChange={setViewedMonth}
                     modifiers={modifiers}
                     modifiersStyles={modifiersStyles}
-                    className="pointer-events-auto"
+                    disabled={(date) => date > today}
                     components={{
                       Caption: () => null,
                     }}
