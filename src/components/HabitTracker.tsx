@@ -925,6 +925,11 @@ export const HabitTracker = () => {
               </Card>
             ) : (
               <Card
+                draggable
+                onDragStart={(e) => handleDragStart(e, habit.id)}
+                onDragOver={(e) => handleDragOver(e, habit.id)}
+                onDrop={(e) => handleDrop(e, habit.id)}
+                onDragEnd={handleDragEnd}
                 className={`p-6 hover:shadow-md transition-all cursor-pointer ${
                   draggedHabit === habit.id ? 'opacity-50' : ''
                 } ${
@@ -935,20 +940,6 @@ export const HabitTracker = () => {
                 <div className="flex items-start gap-3">
                   {/* Drag Handle */}
                   <div
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      handleDragStart(e, habit.id);
-                    }}
-                    onDragOver={(e) => {
-                      e.stopPropagation();
-                      handleDragOver(e, habit.id);
-                    }}
-                    onDrop={(e) => {
-                      e.stopPropagation();
-                      handleDrop(e, habit.id);
-                    }}
-                    onDragEnd={handleDragEnd}
                     className="cursor-grab active:cursor-grabbing pt-1 text-muted-foreground hover:text-foreground transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
