@@ -91,21 +91,33 @@ export const TaskList = () => {
     if (saved) {
       setTasks(JSON.parse(saved));
     } else {
-      // Migration: Check for old task format
-      const oldTasks = localStorage.getItem("tasks");
-      if (oldTasks) {
-        const parsed = JSON.parse(oldTasks);
-        if (Array.isArray(parsed)) {
-          const migrated: TasksByQuadrant = {
-            'urgent-important': [],
-            'not-urgent-important': [],
-            'urgent-not-important': [],
-            'not-urgent-not-important': parsed,
-          };
-          setTasks(migrated);
-          localStorage.setItem("tasks-matrix", JSON.stringify(migrated));
-          localStorage.removeItem("tasks");
-          toast.success("Tasks migrated to Eisenhower Matrix!");
+      // Check if migration has already been done
+      const migrationComplete = localStorage.getItem("tasks-migration-complete");
+      
+      if (!migrationComplete) {
+        // Migration: Check for old task format
+        const oldTasks = localStorage.getItem("tasks");
+        if (oldTasks) {
+          const parsed = JSON.parse(oldTasks);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const migrated: TasksByQuadrant = {
+              'urgent-important': [],
+              'not-urgent-important': [],
+              'urgent-not-important': [],
+              'not-urgent-not-important': parsed,
+            };
+            setTasks(migrated);
+            localStorage.setItem("tasks-matrix", JSON.stringify(migrated));
+            localStorage.removeItem("tasks");
+            localStorage.setItem("tasks-migration-complete", "true");
+            toast.success("Tasks migrated to Eisenhower Matrix!");
+          } else {
+            // Mark migration as complete even if no old tasks found
+            localStorage.setItem("tasks-migration-complete", "true");
+          }
+        } else {
+          // No old tasks to migrate, mark as complete
+          localStorage.setItem("tasks-migration-complete", "true");
         }
       }
     }
