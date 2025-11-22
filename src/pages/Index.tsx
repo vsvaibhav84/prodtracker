@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { HabitTracker } from "@/components/HabitTracker";
 import { TaskList } from "@/components/TaskList";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
-import { Target, CheckSquare, LogOut } from "lucide-react";
+import { Target, CheckSquare, LogOut, BarChart2 } from "lucide-react";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { User, Session } from "@supabase/supabase-js";
@@ -95,7 +96,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Tabs defaultValue="habits" className="space-y-6">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
               <TabsTrigger value="habits" className="gap-2">
                 <Target className="h-4 w-4" />
                 Habits
@@ -103,6 +104,10 @@ const Index = () => {
               <TabsTrigger value="tasks" className="gap-2">
                 <CheckSquare className="h-4 w-4" />
                 Tasks
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-2">
+                <BarChart2 className="h-4 w-4" />
+                Analytics
               </TabsTrigger>
             </TabsList>
 
@@ -112,6 +117,10 @@ const Index = () => {
 
             <TabsContent value="tasks" className="space-y-4">
               <TaskList />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <AnalyticsDashboard />
             </TabsContent>
           </Tabs>
         </div>
