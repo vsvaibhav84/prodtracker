@@ -13,6 +13,14 @@ const emailSchema = z.string().trim().email({ message: "Please enter a valid ema
 const passwordSchema = z.string().min(6, { message: "Password must be at least 6 characters" });
 const displayNameSchema = z.string().trim().min(2, { message: "Display name must be at least 2 characters" }).max(50, { message: "Display name must be less than 50 characters" });
 
+const getAuthErrorMessage = (msg: string): string => {
+  if (msg.includes("Invalid login credentials")) return "Incorrect email or password.";
+  if (msg.includes("Email not confirmed")) return "Please verify your email before logging in.";
+  if (msg.includes("Too many requests")) return "Too many attempts. Please wait and try again.";
+  if (msg.includes("already registered")) return "This email is already registered. Please log in instead.";
+  return "An error occurred. Please try again.";
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -73,7 +81,7 @@ const Auth = () => {
     if (error) {
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: getAuthErrorMessage(error.message),
         variant: "destructive",
       });
       setIsLoading(false);
@@ -135,19 +143,11 @@ const Auth = () => {
     });
     
     if (error) {
-      if (error.message.includes("already registered")) {
-        toast({
-          title: "Account Exists",
-          description: "This email is already registered. Please log in instead.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Signup Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Signup Failed",
+        description: getAuthErrorMessage(error.message),
+        variant: "destructive",
+      });
       setIsLoading(false);
     } else {
       toast({
