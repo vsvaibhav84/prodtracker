@@ -8,6 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Trash2, ListTodo, Edit2, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format, isToday, isBefore, differenceInDays, parseISO } from "date-fns";
+import { z } from "zod";
+
+const taskSchema = z.object({
+  text: z.string().trim().min(1, "Task title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
+  dueDate: z.string().optional(),
+});
 
 interface Task {
   id: string;
@@ -133,8 +140,9 @@ export const TaskList = () => {
   };
 
   const addTask = () => {
-    if (!formData.text.trim()) {
-      toast.error("Task title is required");
+    const result = taskSchema.safeParse(formData);
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
       return;
     }
 
@@ -158,8 +166,10 @@ export const TaskList = () => {
   };
 
   const updateTask = () => {
-    if (!editingTask || !formData.text.trim()) {
-      toast.error("Task title is required");
+    if (!editingTask) return;
+    const result = taskSchema.safeParse(formData);
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
       return;
     }
 
